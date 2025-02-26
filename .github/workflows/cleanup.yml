@@ -1,27 +1,32 @@
-name: Repo Cleanup Workflow
+name: RepoCleaner
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'  # Runs every Sunday at midnight UTC
-  workflow_dispatch:  # Allows manual trigger
+    - cron: '0 0 * * 0'  # Runs every Sunday at midnight
 
 jobs:
-  cleanup:
+  clean-stale-branches:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: "3.x"
 
       - name: Install Dependencies
-        run: pip install requests
+        run: pip install requests PyGithub
 
-      - name: Run Repo Cleaner Script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python repoCleaner.py
+      - name: Fetch Repositories and Identify Stale Branches
+        run: python scripts/repo_cleaner.py
+
+      - name: Request User Approval
+        run: echo "Check stale_branches_summary.txt for review. Proceed manually."
+
+      - name: Delete Stale Branches (Manual Step Required)
+        if: github.event_name == 'workflow_dispatch'  # Only runs manually
+        run: python scripts/delete_branches.py

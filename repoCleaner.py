@@ -1,58 +1,43 @@
 import os
 import requests
-import sys
+from github import Github
 
-# GitHub Authentication
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-if not GITHUB_TOKEN:
-    print(" Error: GITHUB_TOKEN is not set. Exiting.")
-    sys.exit(1)
+REPO_LIST_FILE = "masterRepoList.txt"
+STALE_BRANCHES_FILE = "stale_branches_summary.txt"
+TIME_WINDOW_YEARS = 1  # Stale threshold (1 year)
 
-# Repositories to clean (Replace with your actual repositories)
-REPO_LIST = [
-    "docs",
-    "gh-ost",
-    "dmca",
-    "DPG-guidance"
+repos = [
+    "github/docs",
+    "github/gh-ost",
+    "github/dmca",
+    "github/DPG-guidance"
 ]
-GITHUB_OWNER = "github"  # Replace with your GitHub organization or username
 
-# GitHub API Headers
-HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+# Fetch and store repo names
+with open(REPO_LIST_FILE, "w") as f:
+    for repo in repos:
+        f.write(f"https://github.com/{repo}\n")
 
-def get_branches(repo):
-    """Fetch all branches of a repository."""
-    url = f"https://api.github.com/repos/{GITHUB_OWNER}/{repo}/branches"
-    response = requests.get(url, headers=HEADERS)
+# Connect to GitHub
+github = Github(GITHUB_TOKEN)
 
-    if response.status_code == 200:
-        return [branch["name"] for branch in response.json()]
-    else:
-        print(f" Failed to fetch branches for {repo}: {response.json().get('message', 'Unknown error')}")
-        return []
+stale_branches = []
 
-def delete_branch(repo, branch):
-    """Delete a stale branch."""
-    url = f"https://api.github.com/repos/{GITHUB_OWNER}/{repo}/git/refs/heads/{branch}"
-    response = requests.delete(url, headers=HEADERS)
+for repo_name in repos:
+    repo = github.get_repo(repo_name)
+    branches = repo.get_branches()
 
-    if response.status_code == 204:
-        print(f" Deleted stale branch: {branch} in {repo}")
-    else:
-        print(f" Failed to delete {branch} in {repo}: {response.json().get('message', 'Unknown error')}")
+    for branch in branches:
+        last_commit = repo.get_branch(branch.name).commit.commit.author.date
+        age_days = (datetime.now() - last_commit).days
 
-def is_stale(branch_name):
-    """Custom condition to check if a branch is stale."""
-    return branch_name.startswith("stale-")  # Modify this rule as needed
+        if age_days > (TIME_WINDOW_YEARS * 365):
+            stale_branches.append(f"{repo_name} - {branch.name} (Last Commit: {last_commit})")
 
-def main():
-    for repo in REPO_LIST:
-        print(f"\n🔍 Checking repository: {repo}")
-        branches = get_branches(repo)
+# Store stale branches in a file
+with open(STALE_BRANCHES_FILE, "w") as f:
+    for branch in stale_branches:
+        f.write(branch + "\n")
 
-        for branch in branches:
-            if is_stale(branch):  # Use a function to define stale branches
-                delete_branch(repo, branch)
-
-if __name__ == "__main__":
-    main()
+print("Stale branches identified. Please review 'stale_branches_summary.txt'.")

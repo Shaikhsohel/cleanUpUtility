@@ -1,8 +1,8 @@
 import os
 import requests
 from github import Github
-from datetime import datetime
-
+from datetime import datetime, timezone
+age_days = (datetime.now(timezone.utc) - last_commit).days
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO_LIST_FILE = "masterRepoList.txt"
 STALE_BRANCHES_FILE = "stale_branches_summary.txt"

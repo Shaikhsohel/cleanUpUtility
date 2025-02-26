@@ -22,7 +22,7 @@ jobs:
         run: pip install requests PyGithub
 
       - name: Fetch Repositories and Identify Stale Branches
-        run: python scripts/repo_cleaner.py
+        run: python repo_cleaner.py
 
       - name: Request User Approval
         run: echo "Check stale_branches_summary.txt for review. Proceed manually."

@@ -2,7 +2,16 @@ import os
 import requests
 from github import Github
 from datetime import datetime, timezone
+
+# Ensure last_commit is defined properly
+print(f"DEBUG: last_commit before processing: {last_commit}")  # Add this for debugging
+
+# Fix potential missing variable issue
+if 'last_commit' not in locals():
+    raise ValueError("last_commit is not defined! Check API response or data source.")
+
 age_days = (datetime.now(timezone.utc) - last_commit).days
+
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO_LIST_FILE = "masterRepoList.txt"
 STALE_BRANCHES_FILE = "stale_branches_summary.txt"
